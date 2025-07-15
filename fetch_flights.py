@@ -1,71 +1,56 @@
 import os
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 import pandas as pd
 from amadeus import Client, ResponseError
 
-# 1) Amadeus client iš ENV kintamųjų
+# 1) Inicializuojame Amadeus klientą per ENV kintamuosius
 amadeus = Client(
     client_id=os.environ["AMADEUS_CLIENT_ID"],
     client_secret=os.environ["AMADEUS_CLIENT_SECRET"]
 )
 
-# 2) Parametrai
+# 2) Parametrai – tik viena data
 origin = "IST"
 dest = "ISB"
-target_date = datetime.strptime("2025-09-04", "%Y-%m-%d")
-offset = 3
+departure_date = "2025-09-04"
 
-# 3) Datų sąrašas
-dates = [
-    (target_date + timedelta(days=i)).strftime("%Y-%m-%d")
-    for i in range(-offset, offset + 1)
-]
-
-# 4) Esamas CSV (arba šablonas naujam)
+# 3) Paruošiame esamą CSV arba naują tuščią DataFrame
 output_file = "flights_data.csv"
 if os.path.exists(output_file):
     df_existing = pd.read_csv(output_file)
 else:
     df_existing = pd.DataFrame(columns=[
-        "date_checked","departure_date","from","to",
-        "price","currency","airline","departure_time","arrival_time","offer_id"
+        "date_checked",
+        "departure_date",
+        "from",
+        "to",
+        "price",
+        "currency",
+        "airline",
+        "departure_time",
+        "arrival_time",
+        "offer_id"
     ])
 
-# 5) Surenkame duomenis
+# 4) Data, kada renkame (UTC-aware)
 today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+
+# 5) Užklausiam skrydžių pasiūlymus
 new_records = []
+try:
+    resp = amadeus.shopping.flight_offers_search.get(
+        originLocationCode=origin,
+        destinationLocationCode=dest,
+        departureDate=departure_date,
+        adults=1,
+        max=50
+    )
+    # 6) Surūšiuojam pagal kainą (float) ir paimam max 3 pigiausius
+    offers = resp.data
+    offers_sorted = sorted(
+        offers,
+        key=lambda o: float(o["price"]["total"])
+    )[:3]
 
-for dep_date in dates:
-    try:
-        resp = amadeus.shopping.flight_offers_search.get(
-            originLocationCode=origin,
-            destinationLocationCode=dest,
-            departureDate=dep_date,
-            adults=1,
-            max=50
-        )
-        for offer in resp.data:
-            seg = offer["itineraries"][0]["segments"][0]
-            new_records.append({
-                "date_checked": today,
-                "departure_date": dep_date,
-                "from": origin,
-                "to": dest,
-                "price": offer["price"]["total"],
-                "currency": offer["price"]["currency"],
-                "airline": seg["carrierCode"],
-                "departure_time": seg["departure"]["at"],
-                "arrival_time": seg["arrival"]["at"],
-                "offer_id": offer["id"]
-            })
-    except ResponseError as e:
-        print(f"[{dep_date}] Klaida: {e}")
-
-# 6) Lyginame, sukuriame galutinį DataFrame
-df_new = pd.DataFrame(new_records)
-df_all = pd.concat([df_existing, df_new], ignore_index=True)
-df_all.drop_duplicates(subset=["date_checked","departure_date","offer_id"], inplace=True)
-
-# 7) Išsaugome CSV
-df_all.to_csv(output_file, index=False)
-print(f"Išsaugota {len(df_new)} naujų eilučių į {output_file}")
+    for offer in offers_sorted:
+        seg

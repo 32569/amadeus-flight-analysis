@@ -1,0 +1,36 @@
+name: Fetch Flights Daily
+
+on:
+  schedule:
+    # kasdien 02:00 UTC (04:00 Lietuvos laiku)
+    - cron:  '0 2 * * *'
+  workflow_dispatch:  # leidžia paleisti rankiniu būdu
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.x'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install amadeus pandas python-dotenv
+
+      - name: Fetch flights and upload CSV
+        env:
+          AMADEUS_CLIENT_ID: ${{ secrets.AMADEUS_CLIENT_ID }}
+          AMADEUS_CLIENT_SECRET: ${{ secrets.AMADEUS_CLIENT_SECRET }}
+        run: |
+          python fetch_flights.py
+      - name: Upload CSV as artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: flight-data
+          path: flights_IST_ISB_*.csv

@@ -1,12 +1,12 @@
 name: Daily Flight Data Update
 
-# 1) Suteikiame write teisę, kad veiktų git push
+# 1) Reikia write prieigos, kad veikti git push
 permissions:
   contents: write
 
 on:
   schedule:
-    # kasdien 02:00 UTC (04:00 Vilniuje)
+    # kasdien 02:00 UTC
     - cron: '0 2 * * *'
   workflow_dispatch:
 
@@ -31,7 +31,7 @@ jobs:
           python -m pip install --upgrade pip
           pip install amadeus pandas python-dotenv
 
-      - name: Fetch and update flights CSV
+      - name: Fetch top 3 cheapest offers
         env:
           AMADEUS_CLIENT_ID: ${{ secrets.AMADEUS_CLIENT_ID }}
           AMADEUS_CLIENT_SECRET: ${{ secrets.AMADEUS_CLIENT_SECRET }}
@@ -46,6 +46,6 @@ jobs:
           if git diff --cached --quiet; then
             echo "No changes to commit"
           else
-            git commit -m "Daily update: $(date -u +'%Y-%m-%d')"
+            git commit -m "Daily top‑3 update: $(date -u +'%Y-%m-%d')"
             git push
           fi

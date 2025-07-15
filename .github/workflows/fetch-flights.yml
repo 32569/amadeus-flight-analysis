@@ -1,10 +1,14 @@
 name: Daily Flight Data Update
 
+# 1) Suteikiame write teisę, kad veiktų git push
+permissions:
+  contents: write
+
 on:
   schedule:
     # kasdien 02:00 UTC (04:00 Vilniuje)
-    - cron:  '0 2 * * *'
-  workflow_dispatch:  # leidžia paleisti rankiniu būdu
+    - cron: '0 2 * * *'
+  workflow_dispatch:
 
 jobs:
   update-flights:

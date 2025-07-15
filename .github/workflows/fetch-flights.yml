@@ -1,6 +1,6 @@
 name: Daily Flight Data Update
 
-# 1) Reikia write prieigos, kad veikti git push
+# Suteikiame write-teisę, kad Action galėtų push'inti pakeitimus
 permissions:
   contents: write
 
